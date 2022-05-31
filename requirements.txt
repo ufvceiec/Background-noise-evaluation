@@ -1,0 +1,14 @@
+matplotlib
+keras
+scipy
+numpy == 1.18.5
+pandas
+scikit-learn
+tensorflow
+tqdm
+GPUtil
+lib-platform
+scipy
+librosa
+ijson
+pydub
