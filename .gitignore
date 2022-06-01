@@ -21,3 +21,4 @@ VAE_weights*
 *.h5
 *.pkl
 *.json
+*.wav
