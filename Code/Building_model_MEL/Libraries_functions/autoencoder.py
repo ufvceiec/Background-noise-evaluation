@@ -301,7 +301,7 @@ class VAE:
             vae_loss =(reconstruction_loss + alpha*kl_loss)
             return vae_loss
     #build encoder
-        encoder_inputs = keras.Input(shape=(np.shape(input)[1], np.shape(input)[2], 1))
+        encoder_inputs = keras.Input(shape=(np.shape(X_train)[1], np.shape(X_train)[2], 1))
         x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(encoder_inputs)
         x1_pool = layers.Conv2D(64, 3, activation="relu",strides=2, padding="same", kernel_initializer=kernel_init)(x1)
         x3= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x1_pool)

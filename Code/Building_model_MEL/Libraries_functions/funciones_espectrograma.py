@@ -21,7 +21,6 @@ def load_form_dir(dir_path):
     for root, _, filenames in os.walk(dir_path):
         for filename in tqdm(sorted(filenames, key=lambda x: (x.split("_")[2]))):
             if x==1:
-                print(filename)
                 x=2
             filepath= os.path.join(root, filename)
             spectrogram=np.load(filepath)
