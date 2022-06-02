@@ -5,29 +5,36 @@ from .libraries import *
 
 tf.compat.v1.disable_eager_execution()
 
-def build_VAE_Skipp_complejo(input, latent_space_dim, epsilonstd, alpha, learning):
+def build_VAE_Skipp_complejo(X_train, latent_space_dim, epsilonstd, alpha, learning):
     kernel_init = 'he_normal'
     activation_layer = "relu" 
         # Compute VAE loss
     def VAE_loss(x_origin,x_out):
-        error = x_origin - x_out
-        reconstruction_loss = K.mean(K.square(error), axis=[1, 2, 3])
-        kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-        #vae_loss =(0.75*reconstruction_loss + 0.25*kl_loss)
-        vae_loss =(reconstruction_loss + alpha*kl_loss)
-        return vae_loss
+            error = x_origin - x_out
+            reconstruction_loss = K.mean(K.square(error), axis=[1, 2, 3])
+            kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
+            #vae_loss =(0.75*reconstruction_loss + 0.25*kl_loss)
+            vae_loss =(reconstruction_loss + alpha*kl_loss)
+            return vae_loss
     #build encoder
-    encoder_inputs = keras.Input(shape=(np.shape(input)[1], np.shape(input)[2], 1))
-    x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(encoder_inputs)
-    x1_pool = layers.Conv2D(64, 3, activation="relu",strides=2, padding="same", kernel_initializer=kernel_init)(x1)
+    encoder_inputs = keras.Input(shape=(np.shape(X_train)[1], np.shape(X_train)[2], 1))
+    x4 = layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(encoder_inputs)
+    x4 = layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x4)
+    x4_pool = layers.MaxPooling2D((2, 2))(x4)
+    x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x4_pool)
+    x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x1)
+    x1_pool = layers.MaxPooling2D((2, 2))(x1)
     x3= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x1_pool)
-    x3_pool= layers.Conv2D(128, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x3)
+    x3= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x3)
+    x3_pool = layers.MaxPooling2D((2, 2))(x3)
     x2 = layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x3_pool)
-    x2_pool = layers.Conv2D(256, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x2)
+    x2 = layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x2)
+    x2_pool = layers.MaxPooling2D((2, 2))(x2)
     x5= layers.Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x2_pool)
-    x5_pool= layers.Conv2D(512, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x5)
+    x5= layers.Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x5)
+    x5_pool = layers.MaxPooling2D((2, 2))(x5)
     x = layers.Conv2D(1024, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x5_pool)
-    x = layers.Conv2D(1024, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x)
+    x = layers.Conv2D(1024, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
     
     # x = layers.Conv2D(1024, 3, activation="LeakyReLU", padding="same")(x5)
     shape_before_bottleneck = K.int_shape(x)[1:]
@@ -61,25 +68,27 @@ def build_VAE_Skipp_complejo(input, latent_space_dim, epsilonstd, alpha, learnin
 
     x = Conv2D(512, 3, activation='relu', padding='same', kernel_initializer=kernel_init)(UpSampling2D(size=2)(x))
     x = Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-    merge = concatenate([x5_pool,x], axis = 3)
+    merge = concatenate([x5,x], axis = 3)
     x= layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
     x= layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-    merge = concatenate([x2_pool,x], axis = 3)
+    merge = concatenate([x2,x], axis = 3)
     x= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
     x= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-    merge = concatenate([x3_pool,x], axis = 3)
+    merge = concatenate([x3,x], axis = 3)
     x= layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
     x= layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-    merge = concatenate([x1_pool,x], axis = 3)
+    merge = concatenate([x1,x], axis = 3)
+    x= layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
+    x= layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
+    merge = concatenate([x4,x], axis = 3)
 
-    decoder_outputs = layers.Conv2D(1, 3,activation="tanh", padding="same")(UpSampling2D(size=2)(merge))
+    decoder_outputs = layers.Conv2D(1, 3,activation="tanh", padding="same")(merge)
 
     model = keras.Model(encoder_inputs, decoder_outputs, name="decoder")
     model.summary()
 
-
     model.compile(optimizer=tf.keras.optimizers.Adam(
-    learning_rate=learning), loss=VAE_loss)
+learning_rate=learning), loss=VAE_loss)
     return model, "build_VAE_Skipp_complejo"
 
 def build_VAE_Skipp_partial(input, latent_space_dim, epsilonstd, alpha):
@@ -302,16 +311,23 @@ class VAE:
             return vae_loss
     #build encoder
         encoder_inputs = keras.Input(shape=(np.shape(X_train)[1], np.shape(X_train)[2], 1))
-        x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(encoder_inputs)
-        x1_pool = layers.Conv2D(64, 3, activation="relu",strides=2, padding="same", kernel_initializer=kernel_init)(x1)
+        x4 = layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(encoder_inputs)
+        x4 = layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x4)
+        x4_pool = layers.MaxPooling2D((2, 2))(x4)
+        x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x4_pool)
+        x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x1)
+        x1_pool = layers.MaxPooling2D((2, 2))(x1)
         x3= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x1_pool)
-        x3_pool= layers.Conv2D(128, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x3)
+        x3= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x3)
+        x3_pool = layers.MaxPooling2D((2, 2))(x3)
         x2 = layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x3_pool)
-        x2_pool = layers.Conv2D(256, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x2)
+        x2 = layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x2)
+        x2_pool = layers.MaxPooling2D((2, 2))(x2)
         x5= layers.Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x2_pool)
-        x5_pool= layers.Conv2D(512, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x5)
+        x5= layers.Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x5)
+        x5_pool = layers.MaxPooling2D((2, 2))(x5)
         x = layers.Conv2D(1024, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x5_pool)
-        x = layers.Conv2D(1024, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x)
+        x = layers.Conv2D(1024, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
         
         # x = layers.Conv2D(1024, 3, activation="LeakyReLU", padding="same")(x5)
         shape_before_bottleneck = K.int_shape(x)[1:]
@@ -345,18 +361,21 @@ class VAE:
 
         x = Conv2D(512, 3, activation='relu', padding='same', kernel_initializer=kernel_init)(UpSampling2D(size=2)(x))
         x = Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-        merge = concatenate([x5_pool,x], axis = 3)
+        merge = concatenate([x5,x], axis = 3)
         x= layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
         x= layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-        merge = concatenate([x2_pool,x], axis = 3)
+        merge = concatenate([x2,x], axis = 3)
         x= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
         x= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-        merge = concatenate([x3_pool,x], axis = 3)
+        merge = concatenate([x3,x], axis = 3)
         x= layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
         x= layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
-        merge = concatenate([x1_pool,x], axis = 3)
+        merge = concatenate([x1,x], axis = 3)
+        x= layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
+        x= layers.Conv2D(32, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
+        merge = concatenate([x4,x], axis = 3)
 
-        decoder_outputs = layers.Conv2D(1, 3,activation="tanh", padding="same")(UpSampling2D(size=2)(merge))
+        decoder_outputs = layers.Conv2D(1, 3,activation="tanh", padding="same")(merge)
 
         model = keras.Model(encoder_inputs, decoder_outputs, name="decoder")
         model.summary()
