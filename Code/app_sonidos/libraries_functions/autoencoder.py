@@ -204,7 +204,7 @@ class VAE:
         shape_before_bottleneck = K.int_shape(x)[1:]
         # Bottleneck
         x = layers.Flatten()(x)
-        x = layers.Dense(512, activation="relu")(x)
+        x = layers.Dense(2048, activation="relu")(x)
         z_mean = layers.Dense(latent_space_dim, name="z_mean")(x)
         z_log_var = layers.Dense(latent_space_dim, name="z_log_var")(x)
         def sampling(args):
@@ -255,6 +255,95 @@ class VAE:
     learning_rate=learning), loss=VAE_loss)
         return model, "build_VAE_Skipp_complejo"
 
+    def build_VAE_Skipp_menoscomplejo(X_train, alpha_arg, latent_arg, learning):
+        ruta="./models/"
+        batch_hyper = 42
+        epoch_hyper= 3
+        loss_hyper="mae"
+        optimizer_hyper=tf.keras.optimizers.Adam
+        nombre=None
+        latent_space_dim=latent_arg
+        epsilonstd=1.0
+        alpha=alpha_arg
+        conc_x=-1
+        kernel_init = 'he_normal'
+        activation_layer = "relu" 
+        kernel_init = 'he_normal'
+        activation_layer = "relu" 
+            # Compute VAE loss
+        def VAE_loss(x_origin,x_out):
+            error = x_origin - x_out
+            reconstruction_loss = K.mean(K.square(error), axis=[1, 2, 3])
+            kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
+            #vae_loss =(0.75*reconstruction_loss + 0.25*kl_loss)
+            vae_loss =(reconstruction_loss + alpha*kl_loss)
+            return vae_loss
+        #build encoder
+        encoder_inputs = keras.Input(shape=(np.shape(X_train)[1], np.shape(X_train)[2], 1))
+        x1 = layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(encoder_inputs)
+        x1_pool = layers.Conv2D(64, 3, activation="relu",strides=2, padding="same", kernel_initializer=kernel_init)(x1)
+        x3= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x1_pool)
+        x3_pool= layers.Conv2D(128, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x3)
+        x2 = layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x3_pool)
+        x2_pool = layers.Conv2D(256, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x2)
+        x5= layers.Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x2_pool)
+        x5_pool= layers.Conv2D(512, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x5)
+        x = layers.Conv2D(1024, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x5_pool)
+        x = layers.Conv2D(1024, 3, activation="relu", strides=2, padding="same", kernel_initializer=kernel_init)(x)
+        
+        # x = layers.Conv2D(1024, 3, activation="LeakyReLU", padding="same")(x5)
+        shape_before_bottleneck = K.int_shape(x)[1:]
+        # Bottleneck
+        x = layers.Flatten()(x)
+        x = layers.Dense(512, activation="relu")(x)
+        z_mean = layers.Dense(latent_space_dim, name="z_mean")(x)
+        z_log_var = layers.Dense(latent_space_dim, name="z_log_var")(x)
+        def sampling(args):
+            epsilon = K.random_normal(shape=(K.shape(z_mean)[0], latent_space_dim), mean=0.,
+                                    stddev=epsilonstd)
+            return z_mean + K.exp(z_log_var / 2) * epsilon
+        z = layers.Lambda(sampling, output_shape=(latent_space_dim,), name="z")((z_mean, z_log_var))
+
+        # original
+        # #build decoder
+        num_neurons = np.prod(shape_before_bottleneck)
+        x = layers.Dense(num_neurons, activation="relu")(z)
+        x = layers.Reshape(shape_before_bottleneck)(x)
+
+        # x = layers.Conv2D(512, 3, activation="relu",strides=2,padding="same")(x)
+        # merge = concatenate([x5_pool,x], axis = 3)
+        # x = layers.Conv2DTranspose(256, 3, activation="relu",strides=2, padding="same")(merge)
+        # merge = concatenate([x2_pool,x], axis = 3)
+        # x = layers.Conv2DTranspose(128, 3, activation="relu", strides=2, padding="same")(merge)
+        # merge = concatenate([x3_pool,x], axis = 3)
+        # x = layers.Conv2DTranspose(64, 3, activation="relu", strides=2, padding="same")(merge)
+        # merge = concatenate([x1_pool,x], axis = 3)
+        # decoder_outputs = layers.Conv2DTranspose(1, 3,strides=2,activation="tanh", padding="same")(merge)
+
+
+        x = Conv2D(512, 3, activation='relu', padding='same', kernel_initializer=kernel_init)(UpSampling2D(size=2)(x))
+        x = Conv2D(512, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
+        merge = concatenate([x5_pool,x], axis = 3)
+        x= layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
+        x= layers.Conv2D(256, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
+        merge = concatenate([x2_pool,x], axis = 3)
+        x= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
+        x= layers.Conv2D(128, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
+        merge = concatenate([x3_pool,x], axis = 3)
+        x= layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(UpSampling2D(size=2)(merge))
+        x= layers.Conv2D(64, 3, activation="relu", padding="same", kernel_initializer=kernel_init)(x)
+        merge = concatenate([x1_pool,x], axis = 3)
+
+        decoder_outputs = layers.Conv2D(1, 3,activation="tanh", padding="same")(UpSampling2D(size=2)(merge))
+
+        model = keras.Model(encoder_inputs, decoder_outputs, name="decoder")
+        model.summary()
+
+
+        model.compile(optimizer=tf.keras.optimizers.Adam(
+        learning_rate=learning), loss=VAE_loss)
+        return model, "build_VAE_Skipp_complejo"
+    
     def load_model(X_train, alpha_arg, latent_arg, learning):
         ruta="./models/"
         batch_hyper = 42
