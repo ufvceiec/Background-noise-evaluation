@@ -3,6 +3,7 @@ import matplotlib as plt
 import os
 import keras
 from tensorflow.keras import callbacks
+from sklearn.metrics import mean_squared_error
 import platform
 import pandas as pd
 import numpy as np
