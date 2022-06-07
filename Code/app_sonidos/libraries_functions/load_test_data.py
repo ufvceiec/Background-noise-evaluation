@@ -1,34 +1,6 @@
 from .libraries import *
 from tqdm import tqdm
 
-#TODO: implementar para que leea los datos de test y se pueda cargar el modelo hecho anteriormente, mirar el video numero 14
-class SoundGenerator:
-
-    def __init__(self, vae, hop_lenght):
-        self.vae = vae
-        self.hop_lenght = hop_lenght
-        self._min_max_normliser = MinMaxNormaliser(0, 1)
-
-    def generate(self, spectrograms, min_max_values):
-        generated_spectrograms, latent_representations = self.vae.reconstruct(spectrograms)
-        signals= self.convert_spectrograms_to_audio(generated_spectrograms, min_max_values)
-        return signals, latent_representations
-    
-    def convert_spectrograms_to_audio(self, spectrograms, min_max_values):
-        signals = []
-        for spectrogram, min_max_value in zip(spectrograms,min_max_values):
-            # reshape the log spectrogram to the shape of the spectrogram orignal
-            log_spectrogram = spectrogram[:,:,0]
-            # aplicar desnormalizacion
-            denorm_log_spec=self._min_max_normliser.denormalise(log_spectrogram, min_max_value["min"], min_max_value["max"])
-            # convertir de log a spectrogram
-            spec= librosa.db_to_amplitude(denorm_log_spec)
-            # aplicar ISFT
-            signal= librosa.istft(spec, hop_length=self.hop_lenght)
-            # añadir la señal al array
-            signals.append(signal)
-        return signals
-
 class Loader:
     """Loader is responsible for loading an audio file."""
 

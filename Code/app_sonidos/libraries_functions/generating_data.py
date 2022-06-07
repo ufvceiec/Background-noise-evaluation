@@ -9,10 +9,181 @@ from pydub.utils import make_chunks
 import glob
 from .libraries import *
 import ipywidgets
-from .variables import SAMPLE_RATE
+from .variables import *
+from .soundgenerator import *
 # %% [markdown]
 # ## Variables globales
 #
+
+
+MONO = True
+PATH_TO_MODEL= "./model/"
+PATH_TO_VOICES="./data_tests/mixed_order/voice_order/"
+SPECTROGRAMS_SAVE_DIR = "./data_tests/espectrogramas/"
+MIN_MAX_VALUES_SAVE_DIR = "./data_tests/min_max/"
+MIN_MAX_VALUES = "./data_tests/min_max/min_max_values.pkl"
+FILES_DIR = "./data_tests/mixed_order/mixed_sounds/"
+SAVE_DIR_ORIGINAL="./data_tests/model_generated/original/"
+SAVE_DIR_GENERATED="./data_tests/model_generated/generated/"
+SAVE_DIR_REAL="./data_tests/model_generated/real/"
+
+
+def select_spectrograms(spectrograms,
+                        file_paths,
+                        min_max_values,
+                        num_spectrograms=2):
+
+    file_paths = [file_paths[index] for index in range(len(spectrograms))]
+    sampled_min_max_values = [min_max_values[file_path] for file_path in
+                           file_paths]
+    print(file_paths)
+    return spectrograms, sampled_min_max_values, file_paths
+
+def load_form_direc(dir_path):
+    train=[]
+    file_paths=[]
+    for root, _, filenames in os.walk(dir_path):
+        for file_name in sorted(filenames, key=lambda x: (int(x.split("_")[1].split(".")[0]))):
+            print(file_name)
+            filepath= os.path.join(root, file_name)
+            spectrogram=np.load(filepath)
+            train.append(spectrogram)
+            file_paths.append(filepath)
+        train=np.array(train)
+        train = train[..., np.newaxis]
+
+    return train, file_paths
+
+def load_min_max(min_max_path):
+    with open (min_max_path, "rb") as f:
+        min_max_values = pickle.load(f)
+    return min_max_values
+
+def save_signals(signals, save_dir,voice_paths,type, sample_rate=22050):
+    py_files_m = glob.glob(f'{save_dir}*')
+    for py_file in py_files_m:
+        try:
+            os.remove(py_file)
+        except OSError as e:
+            print(f"Error:{ e.strerror}")
+    for i, signal in enumerate(signals):
+        save_path = os.path.join(save_dir, type+voice_paths[i] + ".wav")
+        print(save_path)
+        sf.write(save_path, signal, sample_rate)
+
+def preprocess_files():
+    ## Ejecutar solo si no tenemos los tests generados correctamente
+
+    py_files_m = glob.glob(f'{SPECTROGRAMS_SAVE_DIR}*')
+    for py_file in py_files_m:
+        try:
+            os.remove(py_file)
+        except OSError as e:
+            print(f"Error:{ e.strerror}")
+
+    py_files_m = glob.glob(f'{MIN_MAX_VALUES_SAVE_DIR}*')
+    for py_file in py_files_m:
+        try:
+            os.remove(py_file) 
+        except OSError as e:
+            print(f"Error:{ e.strerror}")
+
+
+    # instantiate all objects
+    loader = Loader(SAMPLE_RATE, DURATION,MONO)
+    padder = Padder()
+    log_spectrogram_extractor = LogSpectrogramExtractor(N_FFT, HOP_LENGTH)
+    min_max_normaliser = MinMaxNormaliser(0, 1)
+    saver= Saver(SPECTROGRAMS_SAVE_DIR,MIN_MAX_VALUES_SAVE_DIR)
+
+    preprocessing_pipeline = PreprocessingPipeline()
+    preprocessing_pipeline.loader = loader
+    preprocessing_pipeline.padder = padder
+    preprocessing_pipeline.extractor = log_spectrogram_extractor
+    preprocessing_pipeline.normaliser = min_max_normaliser
+    preprocessing_pipeline.saver = saver
+
+    preprocessing_pipeline.process(FILES_DIR)
+
+def convert_spectrograms_to_audio(spectrograms, min_max_values, noise, files_path, model_name= None):
+    x=0
+    _min_max_normaliser=MinMaxNormaliser(0, 1)
+    signals = []
+    path_signals=[]
+    for spectrogram, min_max_value, files_path in zip(spectrograms, min_max_values, files_path):
+        # reshape the log spectrogram
+        log_spectrogram = spectrogram[:, :, 0]
+        # apply denormalisation
+        denorm_log_spec = _min_max_normaliser.denormalise(
+            log_spectrogram, min_max_value["min"], min_max_value["max"])
+        librosa.display.specshow(denorm_log_spec, sr=SAMPLE_RATE, hop_length=HOP_LENGTH)## Nos permite visualizar como un mapa de calor
+        name="mixed"if noise else "predicted"
+        plt.title(f"{name}_Name:{files_path}")
+        plt.xlabel("Time")
+        plt.ylabel("Frequency")
+        plt.colorbar()
+        if model_name!=None and x==0:
+            plt.savefig("./data_tests/espectrograms_images/"+model_name+".png")
+            x=1
+        plt.show()
+        # log spectrogram -> spectrogram
+        spec = librosa.db_to_amplitude(denorm_log_spec)
+        # apply Griffin-Lim
+        _, phase= librosa.magphase(spec)
+        #signal = librosa.istft(spec*phase, hop_length=self.hop_length)
+        signal = librosa.istft(spec*min_max_value["mag_phase"], hop_length=HOP_LENGTH)
+
+        # append signal to "signals"
+        signals.append(signal)
+        path_signals.append(files_path)
+    return signals, path_signals
+
+def spectrograms_of_voice(file_path):
+    signals = []
+    path_signals=[]
+    for spectrogram in (file_path):
+        signal_noise, sr_noise = librosa.load(spectrogram, sr=SAMPLE_RATE, mono=True)
+
+        stft_mixed= librosa.stft(signal_noise, n_fft=N_FFT, hop_length=HOP_LENGTH)[:-1]
+        spectrogram_mixed= np.abs(stft_mixed)
+        log_spectrogram_mixed= librosa.amplitude_to_db(spectrogram_mixed)
+
+        librosa.display.specshow(log_spectrogram_mixed, sr=SAMPLE_RATE, hop_length=HOP_LENGTH)## Nos permite visualizar como un mapa de calor
+        plt.title(f"voice_{spectrogram}")
+        plt.xlabel("Time")
+        plt.ylabel("Frequency")
+        plt.colorbar()
+        plt.show()
+        # append signal to "signals"
+        signals.append(signal_noise)
+        path_signals.append(spectrogram)
+    return signals, path_signals
+
+def search_voices(file_path):
+    def know_number_spec(file_path):
+        paths=[]
+        for file in file_path:
+            file_cut=file.split("_")[-1].split(".")[0]
+            paths.append(file_cut)
+        return paths
+
+    def find_noise(mixed_numbers):
+        voice_paths=[]
+        py_files_m = glob.glob(f'{PATH_TO_VOICES}*')
+        for py_file in py_files_m:
+            file=(py_file.split("_")[-1].split(".")[0])
+            if(file in mixed_numbers):
+                voice_paths.append(py_file)
+        return voice_paths
+    mixed_numbers=know_number_spec(file_path)
+    voice_paths=find_noise(mixed_numbers)
+    print(voice_paths)
+    return voice_paths
+
+
+
+
+
 
 path_Datasets = "./data_tests/noisy_sound/"
 path_TED = "./data_tests/voice_sounds/"
