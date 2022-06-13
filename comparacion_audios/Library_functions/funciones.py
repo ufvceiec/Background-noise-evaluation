@@ -50,3 +50,10 @@ def SNRsystem(inputSig, outputSig):
     powS = signalPower(outputSig)
     powN = signalPower(noise)
     return 10*math.log10((powS-powN)/powN)
+
+def compute_SNR(ref, est):
+    ref = ref.reshape(-1)
+    est = est.reshape(-1)
+    snr =  np.sum(ref**2) / np.sum((ref-est)**2)  #
+    snr = 10*np.log10(snr)
+    return snr
