@@ -34,11 +34,12 @@ def select_spectrograms(spectrograms,
                         min_max_values,
                         num_spectrograms=4):
     num_spec_each_class = int(num_spectrograms / 4)
+    print(num_spec_each_class)
     num_spec_each_class_rest = num_spec_each_class+ (num_spectrograms-num_spec_each_class*4)
-    sampled_indexes_0 = random.sample(range(0,int(len(spectrograms)/4)-1), num_spec_each_class)
-    sampled_indexes_1 = random.sample(range(int(len(spectrograms)/4),(int(len(spectrograms)/4)*2)-1), num_spec_each_class)
-    sampled_indexes_2 = random.sample(range((int(len(spectrograms)/4)*2),(int(len(spectrograms)/4)*3)-1), num_spec_each_class_rest)
-    sampled_indexes_3 = random.sample(range((int(len(spectrograms)/4)*3),(int(len(spectrograms)/4)*4)-1), num_spec_each_class)
+    sampled_indexes_0 = random.sample(range(0,int(len(spectrograms)/4)), num_spec_each_class)
+    sampled_indexes_1 = random.sample(range(int(len(spectrograms)/4),(int(len(spectrograms)/4)*2)), num_spec_each_class)
+    sampled_indexes_2 = random.sample(range((int(len(spectrograms)/4)*2),(int(len(spectrograms)/4)*3)), num_spec_each_class_rest)
+    sampled_indexes_3 = random.sample(range((int(len(spectrograms)/4)*3),(int(len(spectrograms)/4)*4)), num_spec_each_class)
     sampled_indexes=np.concatenate((sampled_indexes_0,sampled_indexes_1,sampled_indexes_2,sampled_indexes_3))
     sampled_spectrogrmas = spectrograms[sampled_indexes]
     file_paths = [file_paths[index] for index in sampled_indexes]

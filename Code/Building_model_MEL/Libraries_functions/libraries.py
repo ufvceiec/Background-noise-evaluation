@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib as plt
 import os
 import keras
+from pesq import pesq
 from tensorflow.keras import callbacks
 from sklearn.metrics import mean_squared_error
 import platform
