@@ -5,6 +5,7 @@ import keras
 from pesq import pesq
 from tensorflow.keras import callbacks
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 import platform
 import pandas as pd
 import numpy as np

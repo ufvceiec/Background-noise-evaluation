@@ -79,6 +79,67 @@ def save_signals(signals, save_dir,voice_paths,type, sample_rate=22050):
         save_path = os.path.join(save_dir, type+voice_paths[i] + ".wav")
         sf.write(save_path, signal, sample_rate)
 
+def read_files_order(new_path, mixed_path, real_path):
+    new={
+        '1':[],
+        '2':[],
+        '3':[],
+        '4':[]
+    }
+    mixed={
+        '1':[],
+        '2':[],
+        '3':[],
+        '4':[]
+    }
+    real={
+        '1':[],
+        '2':[],
+        '3':[],
+        '4':[]
+    }
+    for root, _, filenames in os.walk(new_path):
+        for i,file_name in enumerate(filenames):
+            filepath= os.path.join(root, file_name)
+            y, sr = librosa.load(filepath)
+                #read file with librosa
+            if (i<=len(filenames)/4-1):
+                new['1'].append(y)
+            elif (i>=len(filenames)/4 and i<=((len(filenames)/4)*2)-1):
+                new['2'].append(y)
+            elif (i>=((len(filenames)/4)*2) and i<((len(filenames)/4)*3)-1):
+                new['3'].append(y)
+            else :
+                new['4'].append(y)
+    for root, _, filenames in os.walk(mixed_path):
+        for i,file_name in enumerate(filenames):
+            filepath= os.path.join(root, file_name)
+            y, sr = librosa.load(filepath)
+                #read file with librosa
+            if (i<=len(filenames)/4-1):
+                mixed['1'].append(y)
+            elif (i>=len(filenames)/4 and i<=((len(filenames)/4)*2)-1):
+                mixed['2'].append(y)
+            elif (i>=((len(filenames)/4)*2) and i<((len(filenames)/4)*3)-1):
+                mixed['3'].append(y)
+            else :
+                mixed['4'].append(y)
+    for root, _, filenames in os.walk(real_path):
+        for i,file_name in enumerate(filenames):
+            filepath= os.path.join(root, file_name)
+            y, sr = librosa.load(filepath)
+                #read file with librosa
+            if (i<=len(filenames)/4-1):
+                real['1'].append(y)
+            elif (i>=len(filenames)/4 and i<=((len(filenames)/4)*2)-1):
+                real['2'].append(y)
+            elif (i>=((len(filenames)/4)*2) and i<((len(filenames)/4)*3)-1):
+                real['3'].append(y)
+            else :
+                real['4'].append(y)
+    return new, mixed,real
+
+
 def preprocess_files():
     ## Ejecutar solo si no tenemos los tests generados correctamente
 
