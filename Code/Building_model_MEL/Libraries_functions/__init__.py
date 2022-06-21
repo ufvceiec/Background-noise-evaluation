@@ -7,3 +7,4 @@ from .funciones_metricas import *
 from .autoencoder import *
 from .load_test_data import *
 from .soundgenerator import *
+from .image_comparation import *

@@ -13,9 +13,9 @@ SPECTROGRAMS_SAVE_DIR = "../../Datasets/Data/tests/"
 MIN_MAX_VALUES_SAVE_DIR = "../../Datasets/Data/min_max_tests/"
 MIN_MAX_VALUES = "../../Datasets/Data/min_max_tests/min_max_values.pkl"
 FILES_DIR = "../../Datasets/Test/mixed_sound/"
-SAVE_DIR_ORIGINAL="../../Datasets/model_generated_VAE/original/"
-SAVE_DIR_GENERATED="../../Datasets/model_generated_VAE/generated/"
-SAVE_DIR_REAL="../../Datasets/model_generated_VAE/real/"
+SAVE_DIR_ORIGINAL="original/"
+SAVE_DIR_GENERATED="generated/"
+SAVE_DIR_REAL="real/"
 
 
 def plot_accuracy_loss(history, name):
@@ -53,7 +53,7 @@ def load_form_direc(dir_path):
     train=[]
     file_paths=[]
     for root, _, filenames in os.walk(dir_path):
-        for file_name in sorted(filenames, key=lambda x: (int(x.split("d")[-1].split(".")[0]))): #TODO: mirar por que no se guardan en orden
+        for file_name in sorted(filenames, key=lambda x: (int(x.split("d")[-1].split(".")[0]))):
             filepath= os.path.join(root, file_name)
             spectrogram=np.load(filepath)
             train.append(spectrogram)
@@ -68,15 +68,27 @@ def load_min_max(min_max_path):
         min_max_values = pickle.load(f)
     return min_max_values
 
-def save_signals(signals, save_dir,voice_paths,type, sample_rate=22050):
-    py_files_m = glob.glob(f'{save_dir}*')
+def save_signals(signals, save_dir,voice_paths,type, sample_rate=22050, images=1):
+    PATH="../../Datasets/model_generated_VAE/"
+    py_files_m = glob.glob(f'{PATH+save_dir}*')
     for py_file in py_files_m:
         try:
             os.remove(py_file)
         except OSError as e:
             print(f"Error:{ e.strerror}")
-    for i, signal in enumerate(signals):
-        save_path = os.path.join(save_dir, type+voice_paths[i] + ".wav")
+    for i, signal in tqdm(enumerate(signals)):
+        if images == 0:
+            #lo convertimos de nuevo para guardar imagenes
+            stft_mixed= librosa.stft(signal, n_fft=N_FFT, hop_length=HOP_LENGTH)[:-1]
+            spectrogram_mixed= np.abs(stft_mixed)
+            log_spectrogram_mixed= librosa.amplitude_to_db(spectrogram_mixed)
+            librosa.display.specshow(log_spectrogram_mixed, sr=SAMPLE_RATE, hop_length=HOP_LENGTH)## Nos permite visualizar como un mapa de calor
+            plt.title(f"voice_{voice_paths[i]}")
+            plt.xlabel("Time")
+            plt.ylabel("Frequency")
+            save_path_image = os.path.join(PATH, "Images/"+save_dir+type+voice_paths[i] + ".png")
+            plt.savefig(f'{save_path_image}')
+        save_path = os.path.join(PATH, save_dir+type+voice_paths[i] + ".wav")
         sf.write(save_path, signal, sample_rate)
 
 def read_files_order(new_path, mixed_path, real_path):
