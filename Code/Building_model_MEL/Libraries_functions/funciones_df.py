@@ -1,7 +1,7 @@
 from .libraries import *
-from tqdm import tqdm
 import gc
 import glob
+from tqdm import tqdm
 from .variables import *
 from .autoencoder import *
 from .soundgenerator import *
@@ -69,6 +69,7 @@ def load_min_max(min_max_path):
     return min_max_values
 
 def save_signals(signals, save_dir,voice_paths,type, sample_rate=22050, images=1):
+    print(len(signals))
     PATH="../../Datasets/model_generated_VAE/"
     py_files_m = glob.glob(f'{PATH+save_dir}*')
     for py_file in py_files_m:
