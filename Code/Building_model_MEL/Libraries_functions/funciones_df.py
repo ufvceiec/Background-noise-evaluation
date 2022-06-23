@@ -37,9 +37,13 @@ def select_spectrograms(spectrograms,
     print(num_spec_each_class)
     num_spec_each_class_rest = num_spec_each_class+ (num_spectrograms-num_spec_each_class*4)
     sampled_indexes_0 = random.sample(range(0,int(len(spectrograms)/4)), num_spec_each_class)
+    sampled_indexes_0=sorted(sampled_indexes_0)
     sampled_indexes_1 = random.sample(range(int(len(spectrograms)/4),(int(len(spectrograms)/4)*2)), num_spec_each_class)
+    sampled_indexes_1=sorted(sampled_indexes_1)
     sampled_indexes_2 = random.sample(range((int(len(spectrograms)/4)*2),(int(len(spectrograms)/4)*3)), num_spec_each_class_rest)
+    sampled_indexes_2=sorted(sampled_indexes_2)
     sampled_indexes_3 = random.sample(range((int(len(spectrograms)/4)*3),(int(len(spectrograms)/4)*4)), num_spec_each_class)
+    sampled_indexes_3=sorted(sampled_indexes_3)
     sampled_indexes=np.concatenate((sampled_indexes_0,sampled_indexes_1,sampled_indexes_2,sampled_indexes_3))
     sampled_spectrogrmas = spectrograms[sampled_indexes]
     file_paths = [file_paths[index] for index in sampled_indexes]
@@ -72,7 +76,13 @@ def save_signals(signals, save_dir,voice_paths,type, sample_rate=22050, images=1
     print(len(signals))
     PATH="../../Datasets/model_generated_VAE/"
     py_files_m = glob.glob(f'{PATH+save_dir}*')
+    py_files_e = glob.glob(f'{PATH+"Images/"+save_dir}*')
     for py_file in py_files_m:
+        try:
+            os.remove(py_file)
+        except OSError as e:
+            print(f"Error:{ e.strerror}")
+    for py_file in py_files_e:
         try:
             os.remove(py_file)
         except OSError as e:
@@ -84,11 +94,12 @@ def save_signals(signals, save_dir,voice_paths,type, sample_rate=22050, images=1
             spectrogram_mixed= np.abs(stft_mixed)
             log_spectrogram_mixed= librosa.amplitude_to_db(spectrogram_mixed)
             librosa.display.specshow(log_spectrogram_mixed, sr=SAMPLE_RATE, hop_length=HOP_LENGTH)## Nos permite visualizar como un mapa de calor
-            plt.title(f"voice_{voice_paths[i]}")
-            plt.xlabel("Time")
-            plt.ylabel("Frequency")
             save_path_image = os.path.join(PATH, "Images/"+save_dir+type+voice_paths[i] + ".png")
             plt.savefig(f'{save_path_image}')
+            plt.figure().clear()
+            plt.close()
+            plt.cla()
+            plt.clf()
         save_path = os.path.join(PATH, save_dir+type+voice_paths[i] + ".wav")
         sf.write(save_path, signal, sample_rate)
 
